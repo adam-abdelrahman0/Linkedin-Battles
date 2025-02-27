@@ -1,21 +1,14 @@
-from flask import Flask, request, jsonify
+from flask import Flask
 from flask_cors import CORS
-from database import get_random_matchup, update_elo
-import os
+from routes.users import users_bp
+from routes.matchups import matchups_bp
 
 app = Flask(__name__)
-CORS(app)  # Allows frontend requests
+CORS(app)  # Enable CORS for frontend requests
 
-@app.route("/matchup", methods=["GET"])
-def matchup():
-    profiles = get_random_matchup()
-    return jsonify(profiles)
-
-@app.route("/vote", methods=["POST"])
-def vote():
-    data = request.json
-    update_elo(data["winner_id"], data["loser_id"])
-    return jsonify({"message": "Vote recorded!"})
+# Register routes
+app.register_blueprint(users_bp, url_prefix="/api/users")
+app.register_blueprint(matchups_bp, url_prefix="/api/matchups")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
