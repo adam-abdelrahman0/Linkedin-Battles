@@ -5,16 +5,18 @@ const MatchupPage = () => {
   const [profiles, setProfiles] = useState(null);
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_BACKEND_URL}/matchup`)
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/matchups/matchup`)
       .then((res) => setProfiles(res.data))
       .catch((err) => console.error(err));
   }, []);
 
   const handleVote = (winnerId, loserId) => {
-    axios.post(`${import.meta.env.VITE_BACKEND_URL}/vote`, {
+    axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/matchups/submit`, {
       winner_id: winnerId,
       loser_id: loserId,
     }).then(() => window.location.reload());
+    console.log("Winner ID:", winnerId);
+    console.log("Loser ID:", loserId);
   };
 
   if (!profiles) return <p>Loading...</p>;
@@ -23,12 +25,12 @@ const MatchupPage = () => {
     <div>
       <h2>Which LinkedIn profile is better?</h2>
       <div>
-        <button onClick={() => handleVote(profiles[0].id, profiles[1].id)}>
-          {profiles[0].summary}
+        <button onClick={() => handleVote(profiles['user1'], profiles['user2'])}>
+          {profiles['user1'].name}
         </button>
         <span> VS </span>
-        <button onClick={() => handleVote(profiles[1].id, profiles[0].id)}>
-          {profiles[1].summary}
+        <button onClick={() => handleVote(profiles['user2'], profiles['user1'])}>
+          {profiles['user2'].name}
         </button>
       </div>
     </div>

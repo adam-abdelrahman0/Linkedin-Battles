@@ -1,26 +1,53 @@
 from flask import Blueprint, request, jsonify
 from firebase_init import db
 from utils.elo import calculate_elo
+import random
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 matchups_bp = Blueprint("matchups", __name__)
+
+@matchups_bp.route("/matchup", methods=["GET"])
+def create_matchup():
+    users = [doc.to_dict() for doc in db.collection("users").stream()]
+    user1, user2 = random.sample(users, 2)
+    return jsonify({"user1": user1, "user2": user2})
+
+# chat generated
+def get_user_by_name(name):
+    users_ref = db.collection("users")
+    query = users_ref
+    query = query.where(filter=FieldFilter("linkedin", "==", name))
+    results = query.get()
+
+    for doc in results:
+        return doc  # Return Firestore document
+
+    return None  # User not found
 
 @matchups_bp.route("/submit", methods=["POST"])
 def submit_matchup():
     data = request.json
-    user1_id, user2_id, winner_id = data["user1"], data["user2"], data["winner"]
 
-    user1_ref = db.collection("users").document(user1_id)
-    user2_ref = db.collection("users").document(user2_id)
+    winner_name = data.get("winner_id", "")["linkedin"].strip()
+    loser_name = data.get("loser_id", "")["linkedin"].strip()
 
-    user1 = user1_ref.get().to_dict()
-    user2 = user2_ref.get().to_dict()
+    if not winner_name or not loser_name:
+        return jsonify({"error": "Missing winner or loser name"}), 400
 
-    if not user1 or not user2:
+    winner_doc = get_user_by_name(winner_name)
+    loser_doc = get_user_by_name(loser_name)
+
+    if not winner_doc or not loser_doc:
         return jsonify({"error": "User not found"}), 404
 
-    new_elo1, new_elo2 = calculate_elo(user1["elo"], user2["elo"], winner_id == user1_id)
+    winner = winner_doc.to_dict()
+    loser = loser_doc.to_dict()
 
-    user1_ref.update({"elo": new_elo1})
-    user2_ref.update({"elo": new_elo2})
+    winner["elo"], loser["elo"] = calculate_elo(winner["elo"], loser["elo"], True)
+    winner_ref = db.collection("users").document(winner_doc.id)
+    loser_ref = db.collection("users").document(loser_doc.id)
+    winner_ref.set(winner)
+    loser_ref.set(loser)
+    
 
-    return jsonify({"success": True, "new_elo": {user1_id: new_elo1, user2_id: new_elo2}})
+    return jsonify({"message": "Matchup submitted successfully", "winner": winner, "loser": loser})

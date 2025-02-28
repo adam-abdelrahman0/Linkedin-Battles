@@ -5,7 +5,7 @@ const UserPage = () => {
   const [User, setUser] = useState([]);
 
   useEffect(() => {
-    axios.get(`127.0.0.1/api/users/all`)
+    axios.get(`${import.meta.env.VITE_BACKEND_URL}api/users/all`)
       .then((res) => setUser(res.data))
       .catch((err) => console.error(err));
   }, []);
